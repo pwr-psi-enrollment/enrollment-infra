@@ -1,0 +1,64 @@
+version: '3'
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - app-network
+    volumes:
+      - "./nginx/enrollment-service.conf:/etc/nginx/conf.d/enrollment-service.conf:z"
+      - "./nginx/nginx-cert.crt:/etc/ssl/nginx-cert.crt:z"
+      - "./nginx/nginx-cert.key:/etc/ssl/nginx-cert.key:z"
+
+  mysql:
+    image: mysql
+    container_name: mysql
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+    environment:
+      - MYSQL_ROOT_PASSWORD=root-password
+      - MYSQL_USER=psi-enrollments-user
+      - MYSQL_PASSWORD=psi-enrollments-password
+      - MYSQL_DATABASE=psi_enrollments
+
+  mock-service:
+    build:
+      context: ./mock-service
+    image: mock-service
+    container_name: mock-service
+    restart: unless-stopped
+    tty: true
+    working_dir: /opt/mock-service
+    networks:
+      - app-network
+    volumes:
+      - "./mock-service/data:/opt/mock-service/data:z"
+
+  enrollment-service:
+    build:
+      context: ./enrollment-service
+    image: enrollment-service
+    container_name: enrollment-service
+    restart: unless-stopped
+    tty: true
+    working_dir: /opt/enrollment-service
+    networks:
+      - app-network
+    volumes:
+      - "./assets/wait-for-it.sh:/opt/enrollment-service/wait-for-it.sh:z"
+    depends_on:
+      - mysql
+    command: ["/opt/enrollment-service/wait-for-it.sh", "-t", "60", "mysql:3306", "--", "java", "-jar", "/opt/enrollment-service/enrollment-service.jar"]
+
+networks:
+  app-network:
+    driver: bridge
