@@ -14,6 +14,7 @@ services:
       - "./nginx/enrollment-service.conf:/etc/nginx/conf.d/enrollment-service.conf:z"
       - "./nginx/nginx-cert.crt:/etc/ssl/nginx-cert.crt:z"
       - "./nginx/nginx-cert.key:/etc/ssl/nginx-cert.key:z"
+      - "./nginx/front:/opt/front:z"
 
   mysql:
     image: mysql
@@ -21,7 +22,7 @@ services:
     restart: unless-stopped
     tty: true
     ports:
-      - "3306:3306"
+      - "5555:3306"
     networks:
       - app-network
     environment:
